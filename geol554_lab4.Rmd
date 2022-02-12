@@ -1,0 +1,156 @@
+---
+title: "GEOL554 Lab 4 – Google Earth Engine"
+author: "George Woolsey"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+knit: (function(inputFile, encoding) { rmarkdown::render(inputFile, encoding = encoding, output_file = file.path(dirname(inputFile), 'index.html')) })
+---
+
+```{r setup, include=FALSE, warning=F, message=F}
+library(tidyverse)
+library(lubridate)
+library(readxl)
+library(RColorBrewer)
+library(scales)
+library(ggrepel)
+library(viridis)
+
+```
+
+
+# Google Earth Engine Process and Data
+
+The data used in this report was generated using [this code on Google Earth Engine](https://code.earthengine.google.com/f808f80e1c81b6931d689ae0ffb4c345). The Landsat Gross Primary Production (GPP) CONUS [dataset](https://doi.org/10.1002/rse2.74) was used to calculate a measure of total GPP for each United States Forest Service (USFS) National Forest in the western United States every five years between 1986 and 2021. The Landsat Gross Primary Production (GPP) CONUS dataset estimates GPP using Landsat Surface Reflectance at 30m spatial resolution every 16 days. GPP is the amount of carbon captured by plants in an ecosystem.
+
+## USFS Regions
+
+Only USFS regions in the western US were utilized in this analysis including: Regions 1, 2, 3, 4, and 5.
+
+![](https://www.researchgate.net/profile/Christopher-Woodall-2/publication/228672943/figure/fig1/AS:301894162501634@1448988585910/Map-of-USDA-Forest-Service-National-Forest-System-regions.png)
+
+# Objective
+
+The objective of this research is to identify how GPP has changed over time in different USFS National Forests using data covering a 35-year period from 1986 to 2021. GPP is the amount of carbon captured by plants in an ecosystem. It has been shown that rising atmospheric CO2 during the era of rising emissions has been opposed by increased photosynthesis at the global scale [(Denning 2019)](https://www.annualreviews.org/doi/pdf/10.1146/annurev-earth-032320-092010?casa_token=gGGx0JeUV04AAAAA:7CfzYJHR6SXSnvFbkcAAWq9Me4G9ZZFHkzymlBUIWjCOVy9KCGL9PahQIb5jY6cdDnvKih_HDrjQUA). Processes that have been used to explain this unexpected result include CO2 fertilization of plants, enhanced nutrient availability, and recovery of forests from previous disturbances. However, warmer and drier conditions associated with climate change facilitate fire, drought and insect disturbances and future changes in disturbance are likely to be most pronounced in coniferous forests and the boreal biome [(Seidl et al. 2017)](https://www.nature.com/articles/nclimate3303).
+
+
+# Analysis
+
+## Import csv files exported by GEE
+
+```{r, warning=F, message=F, results='hide', fig.width = 8, fig.height = 5}
+
+# import csv
+dta_yrs <- seq(1986, 2021, by=5)
+
+for (i in 1:length(dta_yrs)) {
+  fpath <- paste0("data/usfs_gpp_", as.character(dta_yrs[i]), ".csv")
+  #read
+  dta <- read.csv(fpath) %>% 
+  mutate_if(is.factor, as.character) %>% 
+  rename_with(~ tolower(.x)) %>% 
+  mutate(
+    gpp_millions = sum / 1000000
+    , area_sq_km = gis_acres / 247
+    , gpp_per_sq_km = gpp_millions / area_sq_km
+    , year_id = dta_yrs[i]
+    , name_short = str_trim(gsub(" and ", " & ", gsub("National Forest", "", gsub("National Forests", "", commonname))))
+    , region_lab = paste0("R", as.character(region))
+  )
+  #create final file
+  if (i==1) {
+    dta_full <- dta  
+  } else{
+    dta_full <- rbind(dta_full, dta)
+  }
+}
+
+# create summary variables
+dta_full <- dta_full %>% 
+  arrange(region, commonname, cnid, year_id) %>% 
+  group_by(cnid) %>% 
+  mutate(
+    gpp_change = gpp_millions - lag(gpp_millions, n=1)
+    , gpp_change_pct =  gpp_change / lag(gpp_millions, n=1)
+    , gpp_change_first = gpp_millions - first(gpp_millions)
+    , gpp_change_first_pct = gpp_change_first / first(gpp_millions)
+    , final_gpp_change_pct = last(gpp_change_first_pct)
+    , last_name_short = ifelse(row_number()==n(), name_short, "")
+  )
+
+```
+
+## Change in GPP first to last year
+
+```{r, warning=F, message=F, results='hide', fig.width = 8, fig.height = 12}
+# plot
+ggplot(dta_full %>% filter(year_id == max(dta_full$year_id)), aes(x=gpp_change_first_pct , y = reorder(name_short, -gpp_change_first_pct), fill = region_lab)) +
+  geom_vline(xintercept = mean(dta_full$final_gpp_change_pct), color="gray", linetype="dashed") +
+  geom_col(alpha=0.9, width = 0.6) + 
+  geom_text(aes(label = scales::percent(gpp_change_first_pct, accuracy = 1L)), colour = "black", angle = 0, size = 3, hjust = "top") +
+  scale_x_continuous(labels = label_percent()) +
+  labs(
+      title = "Change in GPP from 1986 to 2021"
+      # , subtitle = "Swamp Angel Study Plot and Senator Beck Study Plot"
+    ) +
+  ylab("") +
+  xlab("% Change GPP") +
+  scale_fill_viridis(discrete = TRUE, option = "viridis") +
+  theme_bw() +
+  theme(
+    legend.position="top"
+    , legend.box = "horizontal"
+    , legend.title = element_blank()
+    , axis.text.y = element_text(size = 9)
+    , axis.text.x = element_text(size = 11, angle = 0)
+  )
+
+```
+
+On average, the GPP in national forests included in this analysis decreased by 1% from 1986 to 2021. However, the majority of forests saw a decrease in GPP over that same timespan. All but one forest in Region 5 saw a decrease in GPP while the majority of forests in Region 2 saw an increase in GPP. Region 2 had 8 forests in the top 10 forests based on GPP increase from 1986 to 2021, including the White River National Forest which had the highest increase of 36 percent. On the other hand, Region 5 had 9 forests in the bottom 10 forests based on GPP change from 1986 to 2021, including the Mendocino National Forest which had the largest decrease of 42 percent.
+
+## Plot changes in GPP over time
+
+```{r, warning=F, message=F, results='hide', fig.width = 8, fig.height = 5}
+
+my_line_graph <- function(rgn){
+  #generate title
+  my_title <- paste0("R", as.character(rgn), " Change in Annual GPP ", as.character(min(dta_yrs)), "-" , as.character(max(dta_yrs)))
+  #plot
+  (  
+  ggplot(dta_full %>% filter(region == rgn), aes(x = year_id, y = gpp_change_first_pct, color = as.factor(final_gpp_change_pct))) +
+    geom_hline(yintercept=0, linetype="dashed", color = "gray", size=0.8) +
+    geom_line(alpha=0.8, size = 0.8) + 
+    geom_point(alpha=0.8, size = 0.8) + 
+    geom_text_repel(aes(label = last_name_short), hjust=0.7, size=3, color="black") +
+    scale_x_continuous(limits = c(min(dta_yrs), max(dta_yrs)+4 ), breaks = dta_yrs) +
+    scale_y_continuous(labels = label_percent()) +
+    labs(
+        title = my_title
+        # , subtitle = "Swamp Angel Study Plot and Senator Beck Study Plot"
+      ) +
+    ylab("% Change GPP from start") +
+    xlab("") +
+    # scale_color_distiller(palette = "Spectral") +
+    scale_color_viridis(discrete = TRUE, direction = -1, option = "cividis") +
+    theme_bw() +
+    theme(
+      legend.position="none"
+      , axis.text.x = element_text(size = 13)
+      , axis.text.y = element_text(size = 13)
+    )
+  )
+}
+
+# plot with loop to create a plot for each year
+my_rgn <- unique(dta_full$region)
+for (i in 1:length(my_rgn)) {
+  print( my_line_graph(my_rgn[i]) )
+}
+
+```
+
