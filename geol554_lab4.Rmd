@@ -27,9 +27,13 @@ library(viridis)
 
 The data used in this report was generated using [this code on Google Earth Engine](https://code.earthengine.google.com/f808f80e1c81b6931d689ae0ffb4c345). The Landsat Gross Primary Production (GPP) CONUS [dataset](https://doi.org/10.1002/rse2.74) was used to calculate a measure of total GPP for each United States Forest Service (USFS) National Forest in the western United States every five years between 1986 and 2021. The Landsat Gross Primary Production (GPP) CONUS dataset estimates GPP using Landsat Surface Reflectance at 30m spatial resolution every 16 days. GPP is the amount of carbon captured by plants in an ecosystem.
 
+## GPP Data Processing
+
+This analysis utilized estimates of GPP at 30m spatial resolution every 16 days during the growing season only (April 01 to September 30). The median 16-day value of GPP during the growing season was selected for each 30m pixel within the bounds of each USFS National Forest. Selecting the median value at the pixel level accounts for variation in microsite growing conditions. The resulting pixel values were then summed over the entire area of each forest for each year. This resulted in a single annual measure of total GPP for each national forest.
+
 ## USFS Regions
 
-Only USFS regions in the western US were utilized in this analysis including: Regions 1, 2, 3, 4, and 5.
+Only USFS regions in the western US, excluding the Pacific Northwest, were utilized in this analysis which included: Regions 1, 2, 3, 4, and 5 (see map below).
 
 ![](https://www.researchgate.net/profile/Christopher-Woodall-2/publication/228672943/figure/fig1/AS:301894162501634@1448988585910/Map-of-USDA-Forest-Service-National-Forest-System-regions.png)
 
@@ -87,7 +91,7 @@ dta_full <- dta_full %>%
 ## Change in GPP first to last year
 
 ```{r, warning=F, message=F, results='hide', fig.width = 8, fig.height = 12}
-# plot
+# bar plot by national forest
 ggplot(dta_full %>% filter(year_id == max(dta_full$year_id)), aes(x=gpp_change_first_pct , y = reorder(name_short, -gpp_change_first_pct), fill = region_lab)) +
   geom_vline(xintercept = mean(dta_full$final_gpp_change_pct), color="gray", linetype="dashed") +
   geom_col(alpha=0.9, width = 0.6) + 
@@ -102,7 +106,7 @@ ggplot(dta_full %>% filter(year_id == max(dta_full$year_id)), aes(x=gpp_change_f
   scale_fill_viridis(discrete = TRUE, option = "viridis") +
   theme_bw() +
   theme(
-    legend.position="top"
+    legend.position="none"
     , legend.box = "horizontal"
     , legend.title = element_blank()
     , axis.text.y = element_text(size = 9)
@@ -116,7 +120,7 @@ On average, the GPP in national forests included in this analysis decreased by 1
 ## Plot changes in GPP over time
 
 ```{r, warning=F, message=F, results='hide', fig.width = 8, fig.height = 5}
-
+# line plot of % change from first
 my_line_graph <- function(rgn){
   #generate title
   my_title <- paste0("R", as.character(rgn), " Change in Annual GPP ", as.character(min(dta_yrs)), "-" , as.character(max(dta_yrs)))
