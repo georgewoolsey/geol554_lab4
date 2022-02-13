@@ -106,7 +106,7 @@ ggplot(dta_full %>% filter(year_id == max(dta_full$year_id)), aes(x=gpp_change_f
   scale_fill_viridis(discrete = TRUE, option = "viridis") +
   theme_bw() +
   theme(
-    legend.position="none"
+    legend.position="top"
     , legend.box = "horizontal"
     , legend.title = element_blank()
     , axis.text.y = element_text(size = 9)
