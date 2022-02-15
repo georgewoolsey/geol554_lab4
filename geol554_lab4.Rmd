@@ -1,7 +1,7 @@
 ---
-title: "GEOL554 Lab 4 – Google Earth Engine"
+title: "Tracking Gross Primary Production (GPP) in US National Forests over a 36-year period"
 author: "George Woolsey"
-date: "`r format(Sys.time(), '%d %B, %Y')`"
+date: "12 February, 2022"
 output: 
   html_document:
     toc: true
@@ -158,3 +158,4 @@ for (i in 1:length(my_rgn)) {
 
 ```
 
+Of the `r length(unique(dta_full$cnid))` national forests included in this analysis, `r round(length(unique((dta_full %>% dplyr::filter(gpp_change_first_pct < 0 & year_id == 1996))$cnid)) / length(unique(dta_full$cnid)) , 2) * 100`% (`r length(unique((dta_full %>% dplyr::filter(gpp_change_first_pct < 0 & year_id == 1996))$cnid))` forests) had lower GPP in 1996 than in 1986. However, by 2016 only `r length(unique((dta_full %>% dplyr::filter(gpp_change_first_pct < 0 & year_id == 2016))$cnid))` forests (`r round(length(unique((dta_full %>% dplyr::filter(gpp_change_first_pct < 0 & year_id == 2016))$cnid)) / length(unique(dta_full$cnid)) , 2) * 100`%) had lower GPP than the first year of data in 1986.
