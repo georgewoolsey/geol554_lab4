@@ -6,6 +6,7 @@ output:
   html_document:
     toc: true
     toc_float: true
+    code_folding: hide
 editor_options: 
   chunk_output_type: console
 knit: (function(inputFile, encoding) { rmarkdown::render(inputFile, encoding = encoding, output_file = file.path(dirname(inputFile), 'index.html')) })
@@ -45,6 +46,8 @@ The objective of this research is to identify how GPP has changed over time in d
 # Analysis
 
 ## Import csv files exported by GEE
+
+*click "Code" button at right to view code used.
 
 ```{r, warning=F, message=F, results='hide', fig.width = 8, fig.height = 5}
 
@@ -90,6 +93,8 @@ dta_full <- dta_full %>%
 
 ## Change in GPP first to last year
 
+On average, the GPP in national forests included in this analysis decreased by 1% from 1986 to 2021. However, the majority of forests saw a decrease in GPP over that same timespan. All but one forest in Region 5 saw a decrease in GPP while the majority of forests in Region 2 saw an increase in GPP. Region 2 had 8 forests in the top 10 forests based on GPP increase from 1986 to 2021, including the White River National Forest which had the highest increase of 36 percent. On the other hand, Region 5 had 9 forests in the bottom 10 forests based on GPP change from 1986 to 2021, including the Mendocino National Forest which had the largest decrease of 42 percent.
+
 ```{r, warning=F, message=F, results='hide', fig.width = 8, fig.height = 12}
 # bar plot by national forest
 ggplot(dta_full %>% filter(year_id == max(dta_full$year_id)), aes(x=gpp_change_first_pct , y = reorder(name_short, -gpp_change_first_pct), fill = region_lab)) +
@@ -115,9 +120,10 @@ ggplot(dta_full %>% filter(year_id == max(dta_full$year_id)), aes(x=gpp_change_f
 
 ```
 
-On average, the GPP in national forests included in this analysis decreased by 1% from 1986 to 2021. However, the majority of forests saw a decrease in GPP over that same timespan. All but one forest in Region 5 saw a decrease in GPP while the majority of forests in Region 2 saw an increase in GPP. Region 2 had 8 forests in the top 10 forests based on GPP increase from 1986 to 2021, including the White River National Forest which had the highest increase of 36 percent. On the other hand, Region 5 had 9 forests in the bottom 10 forests based on GPP change from 1986 to 2021, including the Mendocino National Forest which had the largest decrease of 42 percent.
 
 ## Plot changes in GPP over time
+
+Of the `r length(unique(dta_full$cnid))` national forests included in this analysis, `r round(length(unique((dta_full %>% dplyr::filter(gpp_change_first_pct < 0 & year_id == 1996))$cnid)) / length(unique(dta_full$cnid)) , 2) * 100`% (`r length(unique((dta_full %>% dplyr::filter(gpp_change_first_pct < 0 & year_id == 1996))$cnid))` forests) had lower GPP in 1996 than in 1986. However, by 2016 only `r length(unique((dta_full %>% dplyr::filter(gpp_change_first_pct < 0 & year_id == 2016))$cnid))` forests (`r round(length(unique((dta_full %>% dplyr::filter(gpp_change_first_pct < 0 & year_id == 2016))$cnid)) / length(unique(dta_full$cnid)) , 2) * 100`%) had lower GPP than the first year of data in 1986.
 
 ```{r, warning=F, message=F, results='hide', fig.width = 8, fig.height = 5}
 # line plot of % change from first
@@ -158,4 +164,3 @@ for (i in 1:length(my_rgn)) {
 
 ```
 
-Of the `r length(unique(dta_full$cnid))` national forests included in this analysis, `r round(length(unique((dta_full %>% dplyr::filter(gpp_change_first_pct < 0 & year_id == 1996))$cnid)) / length(unique(dta_full$cnid)) , 2) * 100`% (`r length(unique((dta_full %>% dplyr::filter(gpp_change_first_pct < 0 & year_id == 1996))$cnid))` forests) had lower GPP in 1996 than in 1986. However, by 2016 only `r length(unique((dta_full %>% dplyr::filter(gpp_change_first_pct < 0 & year_id == 2016))$cnid))` forests (`r round(length(unique((dta_full %>% dplyr::filter(gpp_change_first_pct < 0 & year_id == 2016))$cnid)) / length(unique(dta_full$cnid)) , 2) * 100`%) had lower GPP than the first year of data in 1986.
